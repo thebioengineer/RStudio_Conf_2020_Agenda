@@ -1,0 +1,160 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(googlesheets4)
+library(tidyverse)
+library(htmltools)
+
+agenda <- read_sheet(as_sheets_id("1BOuN7xu60VPFjlN6HU1QN2spQJcwwCiLoSMPQ9HZwmo"))
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+```{r separate-sections}
+
+workshops <- agenda %>% 
+  filter(Type == "Workshop")
+
+conference <- agenda %>% 
+  filter(Type != "Workshop" | is.na(Type))
+
+```
+
+html-ize workshops
+
+
+```{r create-dep}
+
+agenda_dep <- htmltools::htmlDependency(
+    name = "RStudio_Agenda",
+    version = "1.0",
+    src = c(href = "www"),
+    script = c("jquery-1.11.0.min.js","agenda.js"),
+    stylesheet = c("agenda.css"))
+
+
+```
+
+```{r workshops}
+
+workshop2 <- workshops %>% 
+  rowwise() %>% 
+  mutate(
+    container = list(tags$tr(tags$td(div( class = "workshop",
+      tags$button(class = "collapsible",
+                      div(
+                        div(class = "title",p(Name)),
+        div(class = "speaker",p(Speaker))),
+        div(class = "time",p(as.character(Start,format= "%A, %I:%M %p")))
+      ),
+      div( class = "description",
+           HTML(DescriptionHtml))
+    ))))
+  ) %>% 
+  pull(container) 
+  
+workshop_table <- tags$table(
+  tags$thead(
+    tags$td("Workshops", style = "font-size: 50px;font-family: sans-serif;font-weight: 600;")),
+  tagList(workshop2))
+
+```
+
+
+
+```{r conference}
+
+conference2 <- conference %>% 
+  mutate(Location = factor(Location, levels = c("Room 1","Room 2","Room 3","Room 4"))) %>% 
+  arrange(Start,Location) %>% 
+  rowwise() %>% 
+  mutate(
+    container = list(tags$td(
+      div( class = paste(Type,"container"),
+      tags$button(
+        class = paste("collapsible",Category),
+        div(
+          div(class = "title",p(Name)),
+          div(class = "speaker",p(Speaker)),
+          div(class = "category",p(Category)),
+          div(class = "room",p(as.character(Location)))
+          )
+        )
+      ,
+      div( class = "description",
+           HTML(DescriptionHtml))
+    ),
+    colspan = ifelse(paste(Type) %in% c("Keynote","NA"), "5","1")
+    ))
+  )
+
+
+day1 <- conference2 %>% 
+  filter(as.Date(Start) == "2020-01-29") %>% 
+  group_by(Start) %>% 
+  summarize(
+    time_row = list(tags$tr(
+      tags$td(div(class = "time",p(unique(as.character(Start,format= "%A, %I:%M %p"))))),
+      tagList(container)
+      ))
+  ) %>% 
+  pull(time_row)
+
+day2 <- conference2 %>% 
+  filter(as.Date(Start) == "2020-01-30") %>% 
+  group_by(Start) %>% 
+  summarize(
+    time_row = list(tags$tr(
+      tags$td(div(class = "time",p(unique(as.character(Start,format= "%A, %I:%M %p"))))),
+      tagList(container)
+      ))
+  ) %>% 
+  pull(time_row)
+  
+day1_table <- tags$table(
+  tags$thead(
+    tags$td("Day 1 - 2020-01-29", style = "font-size: 50px;font-family: sans-serif;font-weight: 600;", colspan = "5")),
+  tagList(day1))
+
+day2_table <- tags$table(
+  tags$thead(
+    tags$td("Day 2 - 2020-01-30", style = "font-size: 50px;font-family: sans-serif;font-weight: 600;", colspan = "5")),
+  tagList(day2))
+
+```
+
+
+
+```{r save website}
+agenda_tables <- tagList(
+  tags$head(
+    HTML(
+      "<!-- Twidget meta data -->
+      <meta name='twitter:card' content='player'/>
+      <meta name='twitter:site' content='@ellis_hughes'/>
+      <meta name='twitter:title' content='RStudio::Conf 2020'/>
+      <meta name='twitter:description' content='Click to view slides'/>
+      <meta name='twitter:player' content='https://thebioengineer.github.io/RStudio_Conf_2020_Agenda/' />
+      <meta name='twitter:player:width' content='517' />
+      <meta name='twitter:player:height' content='408' />"
+      )),
+  workshop_table, day1_table, day2_table)
+
+htmlDependencies(agenda_tables) <- agenda_dep
+
+save_html(agenda_tables, here::here("index.html"))
+
+```
+
+
+
