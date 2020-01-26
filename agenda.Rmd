@@ -148,7 +148,13 @@ agenda_tables <- tagList(
       <meta name='twitter:player:width' content='517' />
       <meta name='twitter:player:height' content='408' />"
       )),
-  workshop_table, day1_table, day2_table)
+  div(
+    workshop_table, 
+    day1_table, 
+    day2_table,
+    style = "overflow: scroll; height: 100%; width: 100%"
+    )
+  )
 
 htmlDependencies(agenda_tables) <- agenda_dep
 
