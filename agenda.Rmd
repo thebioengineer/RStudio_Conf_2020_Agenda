@@ -152,7 +152,7 @@ agenda_tables <- tagList(
     workshop_table, 
     day1_table, 
     day2_table,
-    style = "overflow: scroll; height: 100%; width: 100%"
+    style = "overflow: scroll; height: 95vh; width: 95vw; margin: auto"
     )
   )
 
