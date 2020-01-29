@@ -75,7 +75,7 @@ workshop_table <- tags$table(
 ```{r conference}
 
 conference2 <- conference %>% 
-  mutate(Location = factor(Location, levels = c("Room 1","Room 2","Room 3","Room 4"))) %>% 
+  mutate(Location = factor(Location, levels = c("Grand Ballroom A","Imperial Ballroom","Grand Ballroom B","Plaza Room"))) %>% 
   arrange(Start,Location) %>% 
   rowwise() %>% 
   mutate(
